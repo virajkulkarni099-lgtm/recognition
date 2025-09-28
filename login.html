@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBR - Cattle Breed Recognition | Login</title>
+    <link rel="stylesheet" href="login.css">  
+    <!-- Load Tailwind CSS via CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+
+        // Function to handle the form submission in this static demo
+        function handleLogin(event) {
+            event.preventDefault();
+            console.log('Login attempt intercepted. Redirecting to dashboard...');
+            // In a real app, you would send credentials to the server here.
+            // For this static demo, we simulate success and redirect.
+            window.location.href = 'dashboard.html'; 
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 font-sans antialiased">
+    
+    <!-- Login Card Container -->
+    <div class="w-full max-w-md bg-white p-8 sm:p-10 rounded-xl shadow-2xl border border-gray-200">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
+                CBR <span class="text-blue-600">- Login</span>
+            </h1>
+            <p class="text-gray-500">Cattle Breed Recognition System</p>
+        </div>
+
+        <form onsubmit="handleLogin(event)" action="/login" method="POST" class="space-y-6">
+            
+            <!-- Username Field -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                </label>
+                <input 
+                    type="text" 
+                    id="username"
+                    name="username" 
+                    required 
+                    autocomplete="username"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Enter your username"
+                >
+            </div>
+            
+            <!-- Password Field -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                </label>
+                <input 
+                    type="password" 
+                    id="password"
+                    name="password" 
+                    required 
+                    autocomplete="current-password"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="••••••••"
+                >
+            </div>
+            
+            <!-- Login Button -->
+            <div>
+                <button 
+                    type="submit"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 transform hover:scale-[1.01]"
+                >
+                    Login
+                </button>
+            </div>
+            
+            <div class="text-center pt-2">
+                <a href="#" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                    Forgot Password?
+                </a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

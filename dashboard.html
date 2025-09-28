@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBR Dashboard - Cattle Breed Recognition</title>
+    
+    <!-- Link to the custom CSS file -->
+    <link rel="stylesheet" type="text/css" href="./dashboard.css">
+    
+    <!-- Load Tailwind CSS via CDN for utility classes (REQUIRED for styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Lucide Icons for vector icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <!-- Main Dashboard Container -->
+    <div id="app" class="flex h-screen">
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform -translate-x-full transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0">
+            <div class="flex items-center justify-between h-16 px-4 bg-gray-800">
+                <h1 class="text-xl font-bold text-white">Cattle Breed AI</h1>
+                <button id="close-sidebar-btn" class="lg:hidden text-gray-400 hover:text-white">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <nav class="mt-8">
+                <div class="px-4 space-y-2" id="nav-links">
+                    <!-- Navigation links will be populated and handled by JS -->
+                </div>
+                
+                <div class="absolute bottom-4 w-full px-4">
+                    <button onclick="handleLogout()" class="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-lg">
+                        <i data-lucide="log-out" class="mr-3 h-5 w-5"></i>
+                        Logout
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 z-30">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <div class="flex items-center">
+                        <button id="open-sidebar-btn" class="lg:hidden text-gray-500 hover:text-gray-700 mr-4">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        </button>
+                        <div>
+                            <h2 id="page-title" class="text-xl font-semibold text-gray-900 capitalize">Dashboard</h2>
+                            <p id="page-description" class="text-sm text-gray-500 hidden sm:block">Overview of your cattle breed analyses</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="hidden md:block text-sm text-gray-500">
+                            Welcome back, <span class="font-medium">User</span>!
+                        </div>
+                        <button onclick="handleLogout()" class="p-2 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-100" title="Logout">
+                            <i data-lucide="log-out" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Container -->
+            <main id="main-content" class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
+                <!-- Content for Dashboard, Analyze, History will be injected here -->
+            </main>
+        </div>
+        
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-overlay" class="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 hidden lg:hidden"></div>
+    </div>
+
+    <script>
+        // --- DATA AND CONSTANTS ---
+        const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/150x150/60a5fa/ffffff?text=CBR';
+        const PLACEHOLDER_AVATAR_URL = 'https://placehold.co/40x40/fef3c7/b45309?text=AI';
+        
+        const MOCK_RECENT_ANALYSES = [
+            { id: 1, breed: 'Holstein Friesian', confidence: 95.2, date: '2024-09-27', image: PLACEHOLDER_IMAGE_URL + '1' },
+            { id: 2, breed: 'Angus', confidence: 92.8, date: '2024-09-26', image: PLACEHOLDER_IMAGE_URL + '2' },
+            { id: 3, breed: 'Jersey', confidence: 89.5, date: '2024-09-25', image: PLACEHOLDER_IMAGE_URL + '3' },
+            { id: 4, breed: 'Brahman', confidence: 87.3, date: '2024-09-24', image: PLACEHOLDER_IMAGE_URL + '4' },
+        ];
+
+        const MOCK_BREED_STATS = [
+            { breed: 'Holstein Friesian', count: 45, percentage: 35.7 },
+            { breed: 'Angus', count: 32, percentage: 25.4 },
+            { breed: 'Jersey', count: 28, percentage: 22.2 },
+            { breed: 'Brahman', count: 21, percentage: 16.7 },
+        ];
+
+        const NAVIGATION_ITEMS = [
+            { id: 'dashboard', label: 'Dashboard', icon: 'bar-chart-3', description: 'Overview of your cattle breed analyses' },
+            { id: 'analyze', label: 'Analyze Cattle', icon: 'camera', description: 'Upload and analyze cattle images' },
+            { id: 'history', label: 'Analysis History', icon: 'users', description: 'View all previous analyses' }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let activeTab = 'dashboard';
+        let selectedImage = null;
+        let currentPrediction = null;
+        let isAnalyzing = false;
+
+        // --- HELPER FUNCTIONS ---
+
+        /** Simulates the AI analysis process with a 3-second delay. */
+        function simulateAnalysis() {
+            if (isAnalyzing) return;
+
+            isAnalyzing = true;
+            currentPrediction = null;
+
+            // Update UI to show analyzing state
+            renderContent(); 
+
+            setTimeout(() => {
+                const breeds = ['Holstein Friesian', 'Angus', 'Jersey', 'Brahman', 'Hereford'];
+                const randomBreed = breeds[Math.floor(Math.random() * breeds.length)];
+                const confidence = (85 + Math.random() * 10).toFixed(1);
+                
+                currentPrediction = {
+                    breed: randomBreed,
+                    confidence: parseFloat(confidence),
+                    characteristics: [
+                        'Large body size',
+                        'Distinctive color pattern',
+                        'Well-developed udder',
+                        'Strong bone structure'
+                    ]
+                };
+                isAnalyzing = false;
+                renderContent(); // Rerender content to show results
+                
+            }, 3000);
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedImage = e.target.result;
+                    simulateAnalysis(); // Start analysis immediately after image selection
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleLogout() {
+            // In a real application, this would clear session/cookies and redirect
+            console.log('Logout clicked. Redirecting to login page...');
+            // window.location.href = 'login.html'; // Example redirect
+        }
+
+        // --- RENDERING FUNCTIONS ---
+
+        function renderSidebar() {
+            const navLinksContainer = document.getElementById('nav-links');
+            navLinksContainer.innerHTML = NAVIGATION_ITEMS.map(item => `
+                <button
+                    onclick="switchTab('${item.id}')"
+                    class="w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        activeTab === item.id ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                    }"
+                >
+                    <i data-lucide="${item.icon}" class="mr-3 h-5 w-5"></i>
+                    ${item.label}
+                </button>
+            `).join('');
+
+            // Important: Call lucide.createIcons() to render the icons injected above
+            lucide.createIcons();
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            // Close mobile sidebar after clicking a link
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                 sidebar.classList.add('-translate-x-full');
+                 overlay.classList.add('hidden');
+            }
+            renderHeader();
+            renderContent();
+            renderSidebar(); // Update active state of sidebar buttons
+        }
+
+        function renderHeader() {
+            const currentItem = NAVIGATION_ITEMS.find(item => item.id === activeTab) || NAVIGATION_ITEMS[0];
+            document.getElementById('page-title').textContent = currentItem.label;
+            document.getElementById('page-description').textContent = currentItem.description;
+        }
+
+        // --- TAB CONTENT RENDERERS ---
+
+        function renderDashboardContent() {
+            return `
+                <div class="space-y-6">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Total Analyses Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-blue-100 rounded-full">
+                                    <i data-lucide="users" class="text-blue-600 h-6 w-6"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Total Analyses</p>
+                                    <p class="text-2xl font-bold text-gray-900">1,247</p>
+                                    <p class="text-xs text-green-600 mt-1">↑ 12% from last month</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Accuracy Rate Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-green-100 rounded-full">
+                                    <i data-lucide="trending-up" class="text-green-600 h-6 w-6"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Accuracy Rate</p>
+                                    <p class="text-2xl font-bold text-gray-900">94.2%</p>
+                                    <p class="text-xs text-green-600 mt-1">↑ 2.1% improved</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Breeds Identified Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-purple-100 rounded-full">
+                                    <i data-lucide="bar-chart-3" class="text-purple-600 h-6 w-6"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Breeds Identified</p>
+                                    <p class="text-2xl font-bold text-gray-900">24</p>
+                                    <p class="text-xs text-blue-600 mt-1">5 new breeds added</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- This Month Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-orange-100 rounded-full">
+                                    <i data-lucide="camera" class="text-orange-600 h-6 w-6"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">This Month</p>
+                                    <p class="text-2xl font-bold text-gray-900">186</p>
+                                    <p class="text-xs text-green-600 mt-1">↑ 24 from last week</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts and Analysis -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Breed Distribution -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Breed Distribution</h3>
+                                <button onclick="switchTab('history')" class="text-sm text-blue-600 hover:text-blue-800">View All</button>
+                            </div>
+                            <div class="space-y-4">
+                                ${MOCK_BREED_STATS.map((stat) => `
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span class="font-medium text-gray-700">${stat.breed}</span>
+                                            <span class="text-gray-500">${stat.count} (${stat.percentage}%)</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div 
+                                                class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
+                                                style="width: ${stat.percentage}%;"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Recent Analyses -->
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Recent Analyses</h3>
+                                <button onclick="switchTab('history')" class="text-sm text-blue-600 hover:text-blue-800">View All</button>
+                            </div>
+                            <div class="space-y-3">
+                                ${MOCK_RECENT_ANALYSES.map((analysis) => `
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden border border-gray-300">
+                                                <img src="${analysis.image}" alt="Cattle" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='${PLACEHOLDER_AVATAR_URL}';" />
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="font-medium text-gray-900">${analysis.breed}</p>
+                                                <p class="text-sm text-gray-500">${analysis.confidence}% confidence</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm text-gray-500">${analysis.date}</p>
+                                            <button class="text-blue-500 hover:text-blue-700 text-sm font-medium">
+                                                <i data-lucide="eye" class="h-4 w-4 inline mr-1"></i>
+                                                View
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button 
+                                onclick="switchTab('analyze')"
+                                class="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-blue-200 hover:border-blue-300 transition-colors"
+                            >
+                                <i data-lucide="camera" class="text-blue-600 mr-2 h-5 w-5"></i>
+                                <span class="font-medium text-blue-700">New Analysis</span>
+                            </button>
+                            
+                            <button class="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 rounded-lg border-2 border-dashed border-green-200 hover:border-green-300 transition-colors">
+                                <i data-lucide="download" class="text-green-600 mr-2 h-5 w-5"></i>
+                                <span class="font-medium text-green-700">Export Reports</span>
+                            </button>
+                            
+                            <button 
+                                onclick="switchTab('history')"
+                                class="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border-2 border-dashed border-purple-200 hover:border-purple-300 transition-colors"
+                            >
+                                <i data-lucide="bar-chart-3" class="text-purple-600 mr-2 h-5 w-5"></i>
+                                <span class="font-medium text-purple-700">View Analytics</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAnalyzeContent() {
+            let uploadSectionHTML = '';
+
+            if (!selectedImage) {
+                uploadSectionHTML = `
+                    <div>
+                        <i data-lucide="upload" class="mx-auto h-16 w-16 text-gray-400 mb-4"></i>
+                        <h4 class="text-lg font-medium text-gray-900 mb-2">Upload Cattle Image</h4>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Click to upload or drag and drop your cattle image here
+                        </p>
+                        <p class="text-xs text-gray-500 mb-6">
+                            Supports: JPG, PNG, GIF up to 10MB
+                        </p>
+                        <button
+                            onclick="document.getElementById('file-upload').click()"
+                            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-lg shadow-blue-500/50"
+                        >
+                            Choose Image
+                        </button>
+                    </div>
+                `;
+            } else {
+                uploadSectionHTML = `
+                    <div>
+                        <img
+                            src="${selectedImage}"
+                            alt="Selected cattle"
+                            class="mx-auto max-h-64 h-auto rounded-xl shadow-xl mb-6 object-contain border-4 border-gray-100"
+                        />
+                        <div class="flex justify-center space-x-4">
+                            <button
+                                onclick="document.getElementById('file-upload').click()"
+                                class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-medium transition-colors"
+                            >
+                                Change Image
+                            </button>
+                            ${currentPrediction ? `
+                                <button
+                                    onclick="simulateAnalysis()"
+                                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium transition-colors shadow-lg shadow-green-500/50"
+                                >
+                                    Re-Analyze
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let resultsSectionHTML = '';
+
+            if (isAnalyzing) {
+                resultsSectionHTML = `
+                    <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                            <h4 class="text-xl font-medium text-gray-900 mb-2">Analyzing Cattle Breed...</h4>
+                            <p class="text-gray-600">Our AI is processing your image. This may take a few moments.</p>
+                            <div class="mt-4 bg-gray-200 rounded-full h-2 max-w-xs mx-auto overflow-hidden">
+                                <!-- Progress bar animation -->
+                                <div class="bg-blue-600 h-2 rounded-full animate-pulse transition-all duration-1000" style="width: 75%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentPrediction) {
+                resultsSectionHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-6">Analysis Results</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <div class="mb-6">
+                                    <h4 class="font-medium text-gray-900 mb-2">Predicted Breed</h4>
+                                    <p class="text-4xl font-extrabold text-blue-700 mb-1">${currentPrediction.breed}</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                                        currentPrediction.confidence > 90 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }">
+                                      ${currentPrediction.confidence > 90 ? 'High Confidence' : 'Moderate Confidence'}
+                                    </span>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-3">Confidence Level</h4>
+                                    <div class="flex items-center mb-2">
+                                        <div class="w-full bg-gray-200 rounded-full h-4">
+                                            <div 
+                                              class="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-1000" 
+                                              style="width: ${currentPrediction.confidence}%;"
+                                            ></div>
+                                        </div>
+                                        <span class="ml-3 text-lg font-bold text-gray-900 min-w-[50px]">
+                                            ${currentPrediction.confidence}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium text-gray-900 mb-3">Identified Characteristics</h4>
+                                <ul class="space-y-3 list-none p-0">
+                                    ${currentPrediction.characteristics.map(char => `
+                                        <li class="text-sm text-gray-700 flex items-start">
+                                            <i data-lucide="check-circle" class="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                                            ${char}
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                                
+                                <div class="mt-6 pt-4 border-t border-gray-200">
+                                    <div class="flex space-x-3">
+                                        <button class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-md">
+                                            Save Result
+                                        </button>
+                                        <button class="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm">
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Cattle Image for Analysis</h3>
+                        
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                            <!-- Hidden File Input -->
+                            <input
+                                type="file"
+                                id="file-upload"
+                                onchange="handleImageUpload(event)"
+                                accept="image/*"
+                                class="hidden"
+                            />
+                            ${uploadSectionHTML}
+                        </div>
+                    </div>
+                    ${resultsSectionHTML}
+                </div>
+            `;
+        }
+
+        function renderHistoryContent() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Analysis History</h3>
+                            <div class="mt-4 sm:mt-0 flex flex-wrap gap-3">
+                                <div class="relative">
+                                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"></i>
+                                    <input
+                                        type="text"
+                                        placeholder="Search analyses..."
+                                        class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-full sm:w-auto"
+                                    />
+                                </div>
+                                <button class="flex items-center px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm">
+                                    <i data-lucide="filter" class="mr-2 h-4 w-4"></i>
+                                    Filter
+                                </button>
+                                <button class="flex items-center px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-md shadow-blue-500/50">
+                                    <i data-lucide="download" class="mr-2 h-4 w-4"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breed</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${MOCK_RECENT_ANALYSES.map((analysis) => `
+                                        <tr class="hover:bg-gray-50 transition-colors">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${analysis.date}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-3 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                    ${analysis.breed}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div 
+                                                          class="bg-green-500 h-2 rounded-full" 
+                                                          style="width: ${analysis.confidence}%;"
+                                                        ></div>
+                                                    </div>
+                                                    ${analysis.confidence}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <img 
+                                                    src="${analysis.image}" 
+                                                    alt="Cattle" 
+                                                    class="w-8 h-8 rounded-full object-cover inline-block border border-gray-300" 
+                                                    onerror="this.onerror=null;this.src='${PLACEHOLDER_AVATAR_URL}';"
+                                                />
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div class="flex space-x-2">
+                                                    <button class="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50 transition-colors" title="View Details">
+                                                        <i data-lucide="eye" class="h-4 w-4"></i>
+                                                    </button>
+                                                    <button class="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50 transition-colors" title="Delete">
+                                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between">
+                            <p class="text-sm text-gray-700 mb-4 sm:mb-0">
+                                Showing <span class="font-medium">1</span> to <span class="font-medium">${MOCK_RECENT_ANALYSES.length}</span> of 
+                                <span class="font-medium">97</span> results
+                            </p>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors" disabled>Previous</button>
+                                <button class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm">1</button>
+                                <button class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">2</button>
+                                <button class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">3</button>
+                                <button class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        function renderContent() {
+            const mainContent = document.getElementById('main-content');
+            let contentHTML = '';
+
+            switch (activeTab) {
+                case 'dashboard':
+                    contentHTML = renderDashboardContent();
+                    break;
+                case 'analyze':
+                    contentHTML = renderAnalyzeContent();
+                    break;
+                case 'history':
+                    contentHTML = renderHistoryContent();
+                    break;
+                default:
+                    contentHTML = '<h2>Tab not found.</h2>';
+            }
+
+            mainContent.innerHTML = contentHTML;
+            // Re-render icons after injecting new HTML content
+            lucide.createIcons(); 
+        }
+
+        // --- INITIALIZATION AND EVENT LISTENERS ---
+
+        function initDashboard() {
+            // Setup mobile sidebar toggles
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const openBtn = document.getElementById('open-sidebar-btn');
+            const closeBtn = document.getElementById('close-sidebar-btn');
+
+            openBtn.addEventListener('click', () => {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            });
+
+            const closeSidebar = () => {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            };
+            
+            closeBtn.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+
+
+            // Initial render
+            switchTab(activeTab);
+        }
+
+        // Run initialization when the document is fully loaded
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

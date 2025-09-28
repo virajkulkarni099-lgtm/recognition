@@ -1,0 +1,23 @@
+/* Global font application for consistency */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Background Image and positioning for the whole screen */
+.full-screen-bg {
+    background-image: url('https://media.istockphoto.com/id/184344585/photo/dairy-cattle-under-a-summer-sky.jpg?s=612x612&w=0&k=20&c=rgELekuxVIOGcYL--HpmIcPB6Ps1UxKMf7AuveKNAS8=');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Dark Overlay to ensure the white login card stands out */
+.background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: black;
+    opacity: 0.3;
+    z-index: 0; /* Ensure it stays behind the login form */
+}
